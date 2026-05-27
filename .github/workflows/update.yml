@@ -1,0 +1,42 @@
+name: 更新存储板块数据
+
+on:
+  schedule:
+    # 每20分钟运行一次 (北京时间 9:00-15:30 高频, 其余时间也有覆盖)
+    - cron: '*/20 * * * 1-5'  # 工作日每20分钟
+    - cron: '0 */2 * * 0,6'   # 周末每2小时
+  workflow_dispatch:  # 允许手动触发
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install requests beautifulsoup4 lxml
+
+      - name: 运行爬虫生成页面
+        run: python generate_site.py
+
+      - name: 部署到 GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          publish_branch: gh-pages
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: '更新数据 ${{ github.sha }}'
