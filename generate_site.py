@@ -254,5 +254,29 @@ function esc(s){{var d=document.createElement('div');d.textContent=s;return d.in
 </html>"""
 
 
+def _git_push():
+    """推送 docs/index.html 到 GitHub"""
+    import subprocess
+    import os
+    proj_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        subprocess.run(["git", "-C", proj_dir, "add", "docs/index.html"], check=True, capture_output=True)
+        diff = subprocess.run(["git", "-C", proj_dir, "diff", "--staged", "--quiet"], capture_output=True)
+        if diff.returncode == 0:
+            print("  无变化，跳过推送")
+            return
+        subprocess.run(["git", "-C", proj_dir, "commit", "-m", f"auto update {gen_time()}"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", proj_dir, "push"], check=True, capture_output=True)
+        print("  推送成功")
+    except Exception as e:
+        print(f"  推送失败: {e}")
+
+
+def gen_time():
+    from datetime import datetime, timezone, timedelta
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
+
+
 if __name__ == "__main__":
     run_all()
+    _git_push()
