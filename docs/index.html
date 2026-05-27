@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股存储板块 · 信息时间线</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f5f5f7;color:#1d1d1f;line-height:1.6}
+a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}
+.app{max-width:800px;margin:0 auto;padding:20px 16px 60px}
+.header{text-align:center;padding:32px 0 20px;border-bottom:1px solid #e5e5e5;margin-bottom:20px}
+.header h1{font-size:24px;font-weight:700;color:#111;letter-spacing:.5px}
+.subtitle{font-size:13px;color:#86868b;margin-top:6px}
+.update-time{font-size:12px;color:#a1a1a6;margin-top:4px}
+.toolbar{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.filter-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.filter-group{display:flex;flex-direction:column;gap:4px}
+.filter-group label{font-size:12px;color:#86868b;font-weight:500}
+.filter-group select,.filter-group input{padding:8px 12px;border:1px solid #d2d2d7;border-radius:8px;font-size:14px;outline:none;background:#fff;min-width:100px}
+.filter-group select:focus,.filter-group input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.btn{padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:500}
+.btn:hover{background:#1d4ed8}
+.stats-bar{display:flex;gap:14px;margin-top:12px;padding-top:12px;border-top:1px solid #f0f0f0;flex-wrap:wrap;font-size:13px;color:#6e6e73}
+.stats-bar strong{color:#1d1d1f}.bullish strong{color:#16a34a}.bearish strong{color:#dc2626}
+.timeline{display:flex;flex-direction:column;gap:20px}
+.day-group{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.day-header{padding:14px 20px;background:#fafafa;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center}
+.day-label{font-weight:600;font-size:15px}
+.day-count{font-size:12px;color:#86868b}
+.event-card{padding:18px 20px;border-bottom:1px solid #f5f5f5;transition:background .15s}
+.event-card:last-child{border-bottom:none}
+.event-card:hover{background:#fafafa}
+.sentiment-bullish{border-left:3px solid #16a34a}
+.sentiment-bearish{border-left:3px solid #dc2626}
+.sentiment-neutral{border-left:3px solid #d2d2d7}
+.event-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.source-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;color:#fff;font-weight:500}
+.event-time{font-size:12px;color:#a1a1a6}
+.event-title{font-size:16px;font-weight:600;margin-bottom:6px;line-height:1.4}
+.event-title a{color:inherit}.event-title a:hover{color:#2563eb;text-decoration:none}
+.event-summary{font-size:14px;color:#6e6e73;margin-bottom:12px;line-height:1.5}
+.sentiment-bar-container{margin-bottom:10px}
+.sentiment-bar{height:6px;border-radius:3px;overflow:hidden;display:flex;background:#f0f0f0}
+.bullish-fill{background:#16a34a;height:100%}
+.bearish-fill{background:#dc2626;height:100%}
+.sentiment-labels{display:flex;justify-content:space-between;margin-top:4px;font-size:12px;font-weight:500}
+.bullish-label{color:#16a34a}.bearish-label{color:#dc2626}
+.event-footer{margin-top:4px}
+.event-tags{display:flex;flex-wrap:wrap;gap:6px}
+.stock-tag{display:inline-block;padding:2px 8px;background:#eff6ff;color:#1e40af;border-radius:4px;font-size:12px;font-weight:500}
+.kw-tag{display:inline-block;padding:2px 8px;background:#f5f5f5;color:#6e6e73;border-radius:4px;font-size:11px}
+.footer{text-align:center;padding:40px 0;color:#a1a1a6;font-size:12px}
+@media(max-width:600px){.filter-row{flex-direction:column}.event-card{padding:14px 16px}.stats-bar{gap:8px;font-size:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+<h1>A股存储板块 · 信息时间线</h1>
+<p class="subtitle">聚合财联社 / 东方财富 / 集微网 · 客观信息源</p>
+<p class="update-time">更新时间：2026-05-27 21:11:38 北京时间 · 每30分钟自动刷新</p>
+</header>
+<div class="toolbar">
+<div class="filter-row">
+<div class="filter-group"><label>日期</label><select id="dateFilter"><option value="">全部日期</option></select></div>
+<div class="filter-group"><label>情绪</label><select id="sentimentFilter"><option value="all">全部</option><option value="bullish">利好</option><option value="bearish">利空</option><option value="neutral">中性</option></select></div>
+<div class="filter-group"><label>关键词</label><input type="text" id="keywordFilter" placeholder="搜索..."></div>
+<button class="btn" id="searchBtn">筛选</button>
+</div>
+<div class="stats-bar">
+<span>共 <strong id="statTotal">0</strong> 条</span>
+<span class="bullish">利好 <strong id="statBullish">0</strong></span>
+<span class="bearish">利空 <strong id="statBearish">0</strong></span>
+<span>中性 <strong id="statNeutral">0</strong></span>
+<span>财联社 <strong id="statCls">0</strong></span>
+<span>东财 <strong id="statEm">0</strong></span>
+<span>集微 <strong id="statJw">0</strong></span>
+</div>
+</div>
+<main class="timeline" id="timeline"></main>
+<footer class="footer">数据来源：财联社 东方财富 集微网 · 利好/利空评分基于关键词分析，仅供参考，不构成投资建议 · Powered by GitHub Pages</footer>
+</div>
+<script>
+var DATA = {"events": [{"title": "CPU缺货涨价持续！国产芯片借势突破高端壁垒", "summary": "CPU缺货涨价持续！国产芯片借势突破高端壁垒", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1041828", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 100, "bearish_pct": 0, "sentiment": "bullish", "keywords_matched": ["涨价", "突破"]}, {"title": "早鸟票倒计时五天！全球半导体分析师论坛解密地缘风云中的“星火燎原”", "summary": "早鸟票倒计时五天！全球半导体分析师论坛解密地缘风云中的“星火燎原”", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1037232", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "5月29日《2025年度中国高校半导体行业专利白皮书》重磅首发", "summary": "5月29日《2025年度中国高校半导体行业专利白皮书》重磅首发", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1037121", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 100, "bearish_pct": 0, "sentiment": "bullish", "keywords_matched": ["专利"]}, {"title": "议程出炉！集微大会先进封测创新峰会启幕", "summary": "议程出炉！集微大会先进封测创新峰会启幕", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1035370", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "第十届集微大会半导体展，骄成超声强势亮相！", "summary": "第十届集微大会半导体展，骄成超声强势亮相！", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1041563", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "数据为芯、JiweiGPT为脑、Agent为链！集微大脑“芯脑链”重构半导体产业新未来", "summary": "数据为芯、JiweiGPT为脑、Agent为链！集微大脑“芯脑链”重构半导体产业新未来", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1042191", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "IICIE国际集成电路创新博览会赋能半导体产业，直击产业前沿 ——三展联动34万展示面积，链接全球优质资源", "summary": "IICIE国际集成电路创新博览会赋能半导体产业，直击产业前沿 ——三展联动34万展示面积，链接全球优质资源", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1033218", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "34万㎡超大规模，5000+展商集结，一同解码半导体行业新发展", "summary": "34万㎡超大规模，5000+展商集结，一同解码半导体行业新发展", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1021381", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "7小时前南科大深港微电子学院周鑫课题组实现奇点增强科里奥利效应，助力芯片级陀螺仪灵敏度跨越式提升", "summary": "7小时前", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1042070", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "存储芯片板块上涨 1.69%", "summary": "存储芯片概念板块涨跌幅 +1.69%，领涨/跌: 中国神华 +2.90%, 华能国际 +2.66%, 华润微 +2.49%", "source": "eastmoney", "source_url": "https://quote.eastmoney.com/bk/90.BK1139.html", "published_at": "2026-05-27T21:11:36", "stocks": ["601088", "600011", "688396", "601179", "002230"], "stock_names": ["中国神华", "华能国际", "华润微", "中国西电", "科大讯飞"], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "财联社5月27日电，欧洲央行管理委员会成员Álvaro Sa", "summary": "【欧洲央行官员Pereira称6月会议将把价格上涨纳入考量】财联社5月27日电，欧洲央行管理委员会成员Álvaro Santos Pereira表示，欧洲央行在6月10日至11日举行政策会议时，将留意近期价格飙升的情况。“世界上已经有一些地区正在经历供应中断和价格上涨，”他周三在里斯本对记者表示，“我们给汽车加油时都能看到这一点。显然，这将在下次会议上被纳入考虑。”距离这场备受期待的会议还有两周之际，Pereira强调，“我们正在关注这些价格的演变，以判断某些价格以及之后工资是否会出现二阶效应。”“我们正密切关注事态发展，以便作出决定，”他表示，“我们谈论的是一场具有国际影响的冲突，它正对能源市场、化肥、半导体、关键初级材料以及欧洲和全球其他地区的能源产生重大影响。”市场和经济学家预计欧洲央行将在此次会议上加息25个基点，几位决策者也支持这一行动。其他人则保持更为审慎的态度，指出欧洲央行的政策立场是不预先承诺。", "source": "cls", "source_url": "https://api3.cls.cn/share/article/2383353?os=web&sv=8.4.6&app=CailianpressWeb", "published_at": "2026-05-27T21:08:57", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "财联社5月27日电，投资者需重点关注的美股市场财经要闻如下：", "summary": "【美股盘前要闻一览：伊美谅解备忘录初步非正式文件内容披露，美油大跌6%；芯片股强势，美光再飙升10%】财联社5月27日电，投资者需重点关注的美股市场财经要闻如下：\n1、继昨日收涨19%，美光科技今日盘前一度大涨10%，报984.95美元，总市值达到1.1万亿美元。其它芯片股也延续强势表现，迈威尔科技涨超6%，恩智浦涨超6%，西部数据涨超5%，闪迪、希捷科技涨超3%。\n2、根据一份有关伊朗与美国谅解备忘录框架的“初步非正式文件”，美国承诺解除针对伊朗的“海上封锁”，并撤出部署在伊朗周边区域的部分军事力量。作为交换，伊朗将于一个月内逐步把霍尔木兹海峡商业船只通行量恢复至局势升级前水平，但不包括军事船只。\n3、国际油价大幅下跌，WTI原油期货价格跌5.97%，报88.283美元/桶；布伦特原油期货价格跌4.62%，报92.200美元/桶。\n4、美股期指集体走高，道琼斯指数期货涨0.24%，标普500指数期货涨0.32%，纳斯达克100指数期货涨0.81%。\n5、台积电美股盘前涨超5%，报道称台积电3纳米下半年涨价15%，明年或再涨10%。\n6、欧洲主要股指集体上涨，欧洲斯托克(Eurostoxx)50指数涨0.92%，英国富时100指数涨0.18%，法国CAC40指数涨1.12%，德国DAX30指数涨0.38%，富时意大利MIB指数涨0.12%。\n7、NASA公布月球基地建设计划，美股商业航天盘前延续涨势，Momentus涨33%，太空基础设施公司Redwire涨超10%，Rocket Lab涨超6%。\n8、美股石油股盘前下跌，康菲石油、埃克森美孚、雪佛龙跌约2%。\n9、美股航空股走强，美国联合航空、美国航空、达美航空股价上涨约2%。\n10、拼多多美股盘前跌超8%，消息面上，公司2026年Q1营收1062亿元，利润125亿元，均不及市场预期。\n11、恒生指数公司发布公告，恒生港美科技指数的编算方法将有以下更新：新增太空探索技术公司（SpaceX）至指定美国成分股名单。\n12、韦德布什将Crowdstrike目标股价从550美元上调至700美元。Benchmark将Crowdstrike目标价格从500美元上调至700美元。", "source": "cls", "source_url": "https://api3.cls.cn/share/article/2383328?os=web&sv=8.4.6&app=CailianpressWeb", "published_at": "2026-05-27T20:42:41", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": ["涨价", "ST", "大跌"]}, {"title": "财联社5月27日电，立讯精密回应记者表示，本次处罚系公司收购", "summary": "【立讯精密回应：积极整改 进一步完善反垄断合规管理机制】财联社5月27日电，立讯精密回应记者表示，本次处罚系公司收购闻泰科技部分业务未及时进行经营者集中申报。经主管机关调查评估，本项经营者集中不具有排除、限制竞争的效果。公司已收到并尊重相关行政处罚决定，将依法按期缴纳90万元罚款。该处罚不影响公司正常经营及财务状况。公司高度重视反垄断及经营者集中申报相关合规要求，已就本次事项积极整改，并进一步完善反垄断合规管理机制。市场监管总局27日公布，该局近日依法对立讯精密工业股份有限公司收购闻泰科技股份有限公司部分业务违反《中华人民共和国反垄断法》实施经营者集中案作出行政处罚决定，综合考虑立讯精密主动报告违法事实、完善反垄断合规管理制度并有效实施等情形，决定对其处以90万元罚款。 (证券时报)", "source": "cls", "source_url": "https://api3.cls.cn/share/article/2383330?os=web&sv=8.4.6&app=CailianpressWeb", "published_at": "2026-05-27T20:41:45", "stocks": [], "stock_names": ["闻泰科技"], "bullish_pct": 0, "bearish_pct": 100, "sentiment": "bearish", "keywords_matched": ["处罚"]}, {"title": "华安证券恒赢20号集合资产管理计划合同条款变更的公告", "summary": "() 公告", "source": "eastmoney", "source_url": "", "published_at": "2026-01-07T16:57:51", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}], "grouped": {"2026-05-27": [{"title": "CPU缺货涨价持续！国产芯片借势突破高端壁垒", "summary": "CPU缺货涨价持续！国产芯片借势突破高端壁垒", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1041828", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 100, "bearish_pct": 0, "sentiment": "bullish", "keywords_matched": ["涨价", "突破"]}, {"title": "早鸟票倒计时五天！全球半导体分析师论坛解密地缘风云中的“星火燎原”", "summary": "早鸟票倒计时五天！全球半导体分析师论坛解密地缘风云中的“星火燎原”", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1037232", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "5月29日《2025年度中国高校半导体行业专利白皮书》重磅首发", "summary": "5月29日《2025年度中国高校半导体行业专利白皮书》重磅首发", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1037121", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 100, "bearish_pct": 0, "sentiment": "bullish", "keywords_matched": ["专利"]}, {"title": "议程出炉！集微大会先进封测创新峰会启幕", "summary": "议程出炉！集微大会先进封测创新峰会启幕", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1035370", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "第十届集微大会半导体展，骄成超声强势亮相！", "summary": "第十届集微大会半导体展，骄成超声强势亮相！", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1041563", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "数据为芯、JiweiGPT为脑、Agent为链！集微大脑“芯脑链”重构半导体产业新未来", "summary": "数据为芯、JiweiGPT为脑、Agent为链！集微大脑“芯脑链”重构半导体产业新未来", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1042191", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "IICIE国际集成电路创新博览会赋能半导体产业，直击产业前沿 ——三展联动34万展示面积，链接全球优质资源", "summary": "IICIE国际集成电路创新博览会赋能半导体产业，直击产业前沿 ——三展联动34万展示面积，链接全球优质资源", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1033218", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "34万㎡超大规模，5000+展商集结，一同解码半导体行业新发展", "summary": "34万㎡超大规模，5000+展商集结，一同解码半导体行业新发展", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1021381", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "7小时前南科大深港微电子学院周鑫课题组实现奇点增强科里奥利效应，助力芯片级陀螺仪灵敏度跨越式提升", "summary": "7小时前", "source": "jiwei", "source_url": "https://www.laoyaoba.com/n/1042070", "published_at": "2026-05-27T21:11:37", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "存储芯片板块上涨 1.69%", "summary": "存储芯片概念板块涨跌幅 +1.69%，领涨/跌: 中国神华 +2.90%, 华能国际 +2.66%, 华润微 +2.49%", "source": "eastmoney", "source_url": "https://quote.eastmoney.com/bk/90.BK1139.html", "published_at": "2026-05-27T21:11:36", "stocks": ["601088", "600011", "688396", "601179", "002230"], "stock_names": ["中国神华", "华能国际", "华润微", "中国西电", "科大讯飞"], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "财联社5月27日电，欧洲央行管理委员会成员Álvaro Sa", "summary": "【欧洲央行官员Pereira称6月会议将把价格上涨纳入考量】财联社5月27日电，欧洲央行管理委员会成员Álvaro Santos Pereira表示，欧洲央行在6月10日至11日举行政策会议时，将留意近期价格飙升的情况。“世界上已经有一些地区正在经历供应中断和价格上涨，”他周三在里斯本对记者表示，“我们给汽车加油时都能看到这一点。显然，这将在下次会议上被纳入考虑。”距离这场备受期待的会议还有两周之际，Pereira强调，“我们正在关注这些价格的演变，以判断某些价格以及之后工资是否会出现二阶效应。”“我们正密切关注事态发展，以便作出决定，”他表示，“我们谈论的是一场具有国际影响的冲突，它正对能源市场、化肥、半导体、关键初级材料以及欧洲和全球其他地区的能源产生重大影响。”市场和经济学家预计欧洲央行将在此次会议上加息25个基点，几位决策者也支持这一行动。其他人则保持更为审慎的态度，指出欧洲央行的政策立场是不预先承诺。", "source": "cls", "source_url": "https://api3.cls.cn/share/article/2383353?os=web&sv=8.4.6&app=CailianpressWeb", "published_at": "2026-05-27T21:08:57", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}, {"title": "财联社5月27日电，投资者需重点关注的美股市场财经要闻如下：", "summary": "【美股盘前要闻一览：伊美谅解备忘录初步非正式文件内容披露，美油大跌6%；芯片股强势，美光再飙升10%】财联社5月27日电，投资者需重点关注的美股市场财经要闻如下：\n1、继昨日收涨19%，美光科技今日盘前一度大涨10%，报984.95美元，总市值达到1.1万亿美元。其它芯片股也延续强势表现，迈威尔科技涨超6%，恩智浦涨超6%，西部数据涨超5%，闪迪、希捷科技涨超3%。\n2、根据一份有关伊朗与美国谅解备忘录框架的“初步非正式文件”，美国承诺解除针对伊朗的“海上封锁”，并撤出部署在伊朗周边区域的部分军事力量。作为交换，伊朗将于一个月内逐步把霍尔木兹海峡商业船只通行量恢复至局势升级前水平，但不包括军事船只。\n3、国际油价大幅下跌，WTI原油期货价格跌5.97%，报88.283美元/桶；布伦特原油期货价格跌4.62%，报92.200美元/桶。\n4、美股期指集体走高，道琼斯指数期货涨0.24%，标普500指数期货涨0.32%，纳斯达克100指数期货涨0.81%。\n5、台积电美股盘前涨超5%，报道称台积电3纳米下半年涨价15%，明年或再涨10%。\n6、欧洲主要股指集体上涨，欧洲斯托克(Eurostoxx)50指数涨0.92%，英国富时100指数涨0.18%，法国CAC40指数涨1.12%，德国DAX30指数涨0.38%，富时意大利MIB指数涨0.12%。\n7、NASA公布月球基地建设计划，美股商业航天盘前延续涨势，Momentus涨33%，太空基础设施公司Redwire涨超10%，Rocket Lab涨超6%。\n8、美股石油股盘前下跌，康菲石油、埃克森美孚、雪佛龙跌约2%。\n9、美股航空股走强，美国联合航空、美国航空、达美航空股价上涨约2%。\n10、拼多多美股盘前跌超8%，消息面上，公司2026年Q1营收1062亿元，利润125亿元，均不及市场预期。\n11、恒生指数公司发布公告，恒生港美科技指数的编算方法将有以下更新：新增太空探索技术公司（SpaceX）至指定美国成分股名单。\n12、韦德布什将Crowdstrike目标股价从550美元上调至700美元。Benchmark将Crowdstrike目标价格从500美元上调至700美元。", "source": "cls", "source_url": "https://api3.cls.cn/share/article/2383328?os=web&sv=8.4.6&app=CailianpressWeb", "published_at": "2026-05-27T20:42:41", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": ["涨价", "ST", "大跌"]}, {"title": "财联社5月27日电，立讯精密回应记者表示，本次处罚系公司收购", "summary": "【立讯精密回应：积极整改 进一步完善反垄断合规管理机制】财联社5月27日电，立讯精密回应记者表示，本次处罚系公司收购闻泰科技部分业务未及时进行经营者集中申报。经主管机关调查评估，本项经营者集中不具有排除、限制竞争的效果。公司已收到并尊重相关行政处罚决定，将依法按期缴纳90万元罚款。该处罚不影响公司正常经营及财务状况。公司高度重视反垄断及经营者集中申报相关合规要求，已就本次事项积极整改，并进一步完善反垄断合规管理机制。市场监管总局27日公布，该局近日依法对立讯精密工业股份有限公司收购闻泰科技股份有限公司部分业务违反《中华人民共和国反垄断法》实施经营者集中案作出行政处罚决定，综合考虑立讯精密主动报告违法事实、完善反垄断合规管理制度并有效实施等情形，决定对其处以90万元罚款。 (证券时报)", "source": "cls", "source_url": "https://api3.cls.cn/share/article/2383330?os=web&sv=8.4.6&app=CailianpressWeb", "published_at": "2026-05-27T20:41:45", "stocks": [], "stock_names": ["闻泰科技"], "bullish_pct": 0, "bearish_pct": 100, "sentiment": "bearish", "keywords_matched": ["处罚"]}], "2026-01-07": [{"title": "华安证券恒赢20号集合资产管理计划合同条款变更的公告", "summary": "() 公告", "source": "eastmoney", "source_url": "", "published_at": "2026-01-07T16:57:51", "stocks": [], "stock_names": [], "bullish_pct": 50, "bearish_pct": 50, "sentiment": "neutral", "keywords_matched": []}]}, "stats": {"total": 14, "bullish": 2, "bearish": 1, "neutral": 11, "by_source": {"jiwei": 9, "eastmoney": 2, "cls": 3}}, "generated_at": "2026-05-27 21:11:38"};
+var SOURCE_LABELS = {cninfo:'巨潮资讯网',eastmoney:'东方财富',cls:'财联社',jiwei:'集微网'};
+var SOURCE_COLORS = {cninfo:'#6366f1',eastmoney:'#f59e0b',cls:'#ef4444',jiwei:'#10b981'};
+
+(function(){
+var all=DATA.events,stats=DATA.stats;
+document.title='A股存储板块 · 信息时间线 ('+stats.total+'条)';
+document.getElementById('statTotal').textContent=stats.total;
+document.getElementById('statBullish').textContent=stats.bullish;
+document.getElementById('statBearish').textContent=stats.bearish;
+document.getElementById('statNeutral').textContent=stats.neutral;
+var by=stats.by_source||{};
+document.getElementById('statCls').textContent=by.cls||0;
+document.getElementById('statEm').textContent=(by.eastmoney||0);
+document.getElementById('statJw').textContent=by.jiwei||0;
+
+// 日期列表
+var days=Object.keys(DATA.grouped).sort().reverse();
+var sel=document.getElementById('dateFilter');
+days.forEach(function(d){var o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+
+// 渲染
+renderTimeline();
+
+document.getElementById('searchBtn').addEventListener('click',renderTimeline);
+document.getElementById('keywordFilter').addEventListener('keydown',function(e){if(e.key==='Enter')renderTimeline();});
+
+function renderTimeline(){
+var dateFilter=document.getElementById('dateFilter').value;
+var sentFilter=document.getElementById('sentimentFilter').value;
+var kw=document.getElementById('keywordFilter').value.toLowerCase();
+
+var filtered=all.filter(function(e){
+if(dateFilter&&e.published_at.slice(0,10)!==dateFilter)return false;
+if(sentFilter!=='all'&&e.sentiment!==sentFilter)return false;
+if(kw&&(e.title+e.summary).toLowerCase().indexOf(kw)===-1)return false;
+return true;
+});
+
+var grouped={};
+filtered.forEach(function(e){
+var day=e.published_at.slice(0,10)||'unknown';
+if(!grouped[day])grouped[day]=[];
+grouped[day].push(e);
+});
+var fdays=Object.keys(grouped).sort().reverse();
+
+var html='';
+if(fdays.length===0){html='<div style="text-align:center;padding:60px;color:#86868b">暂无匹配数据</div>';}
+else{fdays.forEach(function(day){
+var events=grouped[day];
+html+='<div class="day-group"><div class="day-header"><span class="day-label">'+day+'</span><span class="day-count">'+events.length+' 条</span></div><div class="day-items">';
+events.forEach(function(e){html+=renderEvent(e);});
+html+='</div></div>';
+});}
+document.getElementById('timeline').innerHTML=html;
+}
+
+function renderEvent(e){
+var cls=e.sentiment==='bullish'?'sentiment-bullish':e.sentiment==='bearish'?'sentiment-bearish':'sentiment-neutral';
+var time=e.published_at?e.published_at.slice(11,16):'--:--';
+var stockTags=(e.stock_names||[]).map(function(n){return'<span class="stock-tag">'+esc(n)+'</span>';}).join('');
+var kwTags=(e.keywords_matched||[]).slice(0,5).map(function(k){return'<span class="kw-tag">'+esc(k)+'</span>';}).join('');
+var color=SOURCE_COLORS[e.source]||'#999';
+var label=SOURCE_LABELS[e.source]||e.source;
+var link=e.source_url?'<a href="'+esc(e.source_url)+'" target="_blank" rel="noopener">'+esc(e.title)+'</a>':esc(e.title);
+var summary=(e.summary&&e.summary!==e.title)?'<p class="event-summary">'+esc(e.summary)+'</p>':'';
+return'<div class="event-card '+cls+'"><div class="event-header"><span class="source-badge" style="background:'+color+'">'+label+'</span><span class="event-time">'+time+'</span></div><h3 class="event-title">'+link+'</h3>'+summary+'<div class="sentiment-bar-container"><div class="sentiment-bar"><div class="sentiment-fill bullish-fill" style="width:'+e.bullish_pct+'%"></div><div class="sentiment-fill bearish-fill" style="width:'+e.bearish_pct+'%"></div></div><div class="sentiment-labels"><span class="bullish-label">利好 '+e.bullish_pct+'%</span><span class="bearish-label">利空 '+e.bearish_pct+'%</span></div></div><div class="event-footer"><div class="event-tags">'+stockTags+kwTags+'</div></div></div>';
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+})();
+</script>
+</body>
+</html>
